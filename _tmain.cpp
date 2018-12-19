@@ -553,12 +553,13 @@ int _tmain(int argc, TCHAR* argv[]) {
 
     uint32_t checksum = GenerateChecksum(UserName, LicenseType, RegisterData);
 
-    _tprintf_s(TEXT("RAR registration data\n%s\n%s\n%s\n"), 
+    _tprintf_s(TEXT("RAR registration data\n%s\n%s\n%s\n"),
                UserName,
                LicenseType,
                UID);
 
-    _stprintf_s(UID, TEXT("%zd%zd%zd%zd%s%s%s%s%lu"),
+    char data[512] = {};
+    _stprintf_s(data, TEXT("%zd%zd%zd%zd%s%s%s%s%010lu"),
                 strlen(RegisterData[0]),
                 strlen(RegisterData[1]),
                 strlen(RegisterData[2]),
@@ -570,7 +571,7 @@ int _tmain(int argc, TCHAR* argv[]) {
                 checksum);
 
     for (int i = 0; i < 8; ++i)
-        _tprintf_s(TEXT("%.54s\n"), UID + i * 54);
+        _tprintf_s(TEXT("%.54s\n"), data + i * 54);
 
 	return 0;
 }
