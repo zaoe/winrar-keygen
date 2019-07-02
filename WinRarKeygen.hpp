@@ -3,7 +3,9 @@
 #include "Hasher.hpp"
 #include "HasherSha1Traits.hpp"
 #include "HasherCrc32Traits.hpp"
+#include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <string>
 #include <utility>
 
@@ -100,8 +102,8 @@ private:
         for (size_t i = 6; i < 16; ++i)
             Generator[i] = _byteswap_ulong(Generator[i]);
 
-        // skip 15 rounds that used to generate private key
-        Generator[0] = 15;
+        srand(static_cast<unsigned int>(time(nullptr)));
+        Generator[0] = rand();
 
         for (size_t i = 0; i < 15; ++i) {
             Hasher Sha1(HasherSha1Traits{});
@@ -144,25 +146,29 @@ private:
         BigInteger Random;
         BigInteger Hash;
         
-        GenerateRandomAndHash(nullptr, 0, lpData, cbData, Random, Hash);
+        while (true) {
+            GenerateRandomAndHash(nullptr, 0, lpData, cbData, Random, Hash);
 
-        //
-        // Calculate Signature.r
-        //
-        Signature.r.Load(false, (__ConfigType::G * Random).GetX().Dump(), true);
-        Signature.r += Hash;
-        Signature.r %= __ConfigType::Order;
-        if (Signature.r.IsZero() || Signature.r + Random == __ConfigType::Order) {
-            throw std::runtime_error("InternalError: Failed to sign data.");
-        }
+            //
+            // Calculate Signature.r
+            //
+            Signature.r.Load(false, (__ConfigType::G * Random).GetX().Dump(), true);
+            Signature.r += Hash;
+            Signature.r %= __ConfigType::Order;
+            if (Signature.r.IsZero() || Signature.r + Random == __ConfigType::Order) {
+                continue;
+            }
 
-        //
-        // Calculate Signature.s
-        //
-        Signature.s = Random - __ConfigType::PrivateKey * Signature.r;
-        Signature.s %= __ConfigType::Order;
-        if (Signature.s.IsZero()) {
-            throw std::runtime_error("InternalError: Failed to sign data.");
+            //
+            // Calculate Signature.s
+            //
+            Signature.s = Random - __ConfigType::PrivateKey * Signature.r;
+            Signature.s %= __ConfigType::Order;
+            if (Signature.s.IsZero()) {
+                continue;
+            }
+
+            break;
         }
 
         return Signature;
@@ -204,23 +210,25 @@ public:
         RegInfo.Items[0] = HashAndEncodeWithECC(RegInfo.Items[3].c_str());
         RegInfo.UID = HelperStringFormat("%.16s%.4s", temp.c_str() + 48, RegInfo.Items[0].c_str());
 
-        auto LicenseTypeSignature = Sign(RegInfo.LicenseType.c_str(), RegInfo.LicenseType.length());
-        auto LicenseTypeSignatureR = LicenseTypeSignature.r.ToString(16, true);
-        auto LicenseTypeSignatureS = LicenseTypeSignature.s.ToString(16, true);
-        if (LicenseTypeSignatureR.length() > 60 || LicenseTypeSignatureS.length() > 60) {
-            throw std::runtime_error("InternalError: Signature of license type is too long.");
-        } else {
-            RegInfo.Items[1] = HelperStringFormat("60%060s%060s", LicenseTypeSignatureS.c_str(), LicenseTypeSignatureR.c_str());
+        while (true) {
+            auto LicenseTypeSignature = Sign(RegInfo.LicenseType.c_str(), RegInfo.LicenseType.length());
+            auto LicenseTypeSignatureR = LicenseTypeSignature.r.ToString(16, true);
+            auto LicenseTypeSignatureS = LicenseTypeSignature.s.ToString(16, true);
+            if (LicenseTypeSignatureR.length() <= 60 && LicenseTypeSignatureS.length() <= 60) {
+                RegInfo.Items[1] = HelperStringFormat("60%060s%060s", LicenseTypeSignatureS.c_str(), LicenseTypeSignatureR.c_str());
+                break;
+            }
         }
 
         temp = RegInfo.UserName + RegInfo.Items[0];
-        auto UserNameSignature = Sign(temp.c_str(), temp.length());
-        auto UserNameSignatureR = UserNameSignature.r.ToString(16, true);
-        auto UserNameSignatureS = UserNameSignature.s.ToString(16, true);
-        if (UserNameSignatureR.length() > 60 || UserNameSignatureS.length() > 60) {
-            throw std::runtime_error("InternalError: Signature of username is too long.");
-        } else {
-            RegInfo.Items[2] = HelperStringFormat("60%060s%060s", UserNameSignatureS.c_str(), UserNameSignatureR.c_str());
+        while (true) {
+            auto UserNameSignature = Sign(temp.c_str(), temp.length());
+            auto UserNameSignatureR = UserNameSignature.r.ToString(16, true);
+            auto UserNameSignatureS = UserNameSignature.s.ToString(16, true);
+            if (UserNameSignatureR.length() <= 60 || UserNameSignatureS.length() <= 60) {
+                RegInfo.Items[2] = HelperStringFormat("60%060s%060s", UserNameSignatureS.c_str(), UserNameSignatureR.c_str());
+                break;
+            }
         }
 
         CalculateChecksum(RegInfo);
