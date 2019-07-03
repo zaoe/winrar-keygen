@@ -72,57 +72,7 @@ private:
         return __ConfigType::G * PrivateKey;
     }
 
-    static void GenerateRandomAndHash(const void* lpSeed, size_t cbSeed, const void* lpData, size_t cbData, BigInteger& Random, BigInteger& Hash) {
-        uint32_t Generator[16] = {};
-        uint16_t RawRandomInteger[16] = {};
-
-        if (cbSeed) {
-            Hasher Sha1(HasherSha1Traits{}, lpSeed, cbSeed);
-            HasherSha1Traits::DigestType Sha1Digest;
-
-            Sha1Digest = Sha1.Evaluate();
-
-            for (unsigned i = 0; i < 5; ++i) {
-                Generator[i + 1] = _byteswap_ulong(reinterpret_cast<uint32_t*>(Sha1Digest.Bytes)[i]);
-            }
-        } else {
-            Generator[1] = 0xeb3eb781;
-            Generator[2] = 0x50265329;
-            Generator[3] = 0xdc5ef4a3;
-            Generator[4] = 0x6847b9d5;
-            Generator[5] = 0xcde43b4c;
-        }
-
-        Hasher Sha1(HasherSha1Traits{}, lpData, cbData);
-        memcpy(Generator + 6, Sha1.Evaluate().Bytes, Sha1.DigestSize());
-
-        // SHA1("") with all-zeroed initial value
-        memcpy(Generator + 11, "\x0f\xfd\x8d\x43\xb4\xe3\x3c\x7c\x53\x46\x1b\xd1\x0f\x27\xa5\x46\x10\x50\xd9\x0d", Sha1.DigestSize());
-
-        for (size_t i = 6; i < 16; ++i)
-            Generator[i] = _byteswap_ulong(Generator[i]);
-
-        srand(static_cast<unsigned int>(time(nullptr)));
-        Generator[0] = rand();
-
-        for (size_t i = 0; i < 15; ++i) {
-            Hasher Sha1(HasherSha1Traits{});
-            HasherSha1Traits::DigestType Sha1Digest;
-
-            ++Generator[0];
-            Sha1.Update(Generator, sizeof(Generator));
-            Sha1Digest = Sha1.Evaluate();
-
-            RawRandomInteger[i] = static_cast<uint16_t>(
-                _byteswap_ulong(reinterpret_cast<uint32_t*>(Sha1Digest.Bytes)[0])
-            );
-        }
-
-        Random.Load(false, RawRandomInteger, sizeof(RawRandomInteger), true);
-        Hash.Load(false, Generator + 6, 15 * sizeof(uint16_t), true);
-    }
-
-    static std::string HashAndEncodeWithECC(const char* lpszMessage) {
+    static std::string GeneratePublicKeySM2Format(const char* lpszMessage) {
         auto PrivateKey = GeneratePrivateKey(lpszMessage, strlen(lpszMessage));
         auto PublicKey = GeneratePublicKey(PrivateKey);
         auto PublicKeyCompressed = PublicKey.DumpCompressed();
@@ -141,13 +91,42 @@ private:
         return PublicKeyCompressedSM2Format;
     }
 
+    static BigInteger GenerateRandomInteger() {
+        uint16_t RawRandomInteger[15];
+
+        srand(static_cast<unsigned int>(time(nullptr)));
+        for (size_t i = 0; i < 15; ++i) {
+            RawRandomInteger[i] = static_cast<uint16_t>(rand());
+        }
+
+        return BigInteger(false, RawRandomInteger, sizeof(RawRandomInteger), true);
+    }
+
+    static BigInteger GenerateHashInteger(const void* lpMessage, size_t cbMessage) {
+        uint32_t RawHash[10];
+        Hasher Sha1(HasherSha1Traits{}, lpMessage, cbMessage);
+        HasherSha1Traits::DigestType Sha1Digest = Sha1.Evaluate();
+
+        for (size_t i = 0; i < 5; ++i) {
+            RawHash[i] = _byteswap_ulong(reinterpret_cast<uint32_t*>(Sha1Digest.Bytes)[i]);
+        }
+
+        // SHA1("") with all-zeroed initial value
+        RawHash[5] = 0x0ffd8d43;
+        RawHash[6] = 0xb4e33c7c;
+        RawHash[7] = 0x53461bd1;
+        RawHash[8] = 0x0f27a546;
+        RawHash[9] = 0x1050d90d;
+
+        return BigInteger(false, RawHash, 15 * sizeof(uint16_t), true);     // take first 240 bits
+    }
+
     static ECCSignature Sign(const void* lpData, size_t cbData) {
         ECCSignature Signature;
-        BigInteger Random;
-        BigInteger Hash;
-        
+        BigInteger Hash = GenerateHashInteger(lpData, cbData);
+
         while (true) {
-            GenerateRandomAndHash(nullptr, 0, lpData, cbData, Random, Hash);
+            BigInteger Random = GenerateRandomInteger();
 
             //
             // Calculate Signature.r
@@ -205,9 +184,9 @@ public:
         RegInfo.UserName = lpszUserName;
         RegInfo.LicenseType = lpszLicenseType;
 
-        temp = HashAndEncodeWithECC(lpszUserName);
+        temp = GeneratePublicKeySM2Format(lpszUserName);
         RegInfo.Items[3] = HelperStringFormat("60%.48s", temp.c_str());
-        RegInfo.Items[0] = HashAndEncodeWithECC(RegInfo.Items[3].c_str());
+        RegInfo.Items[0] = GeneratePublicKeySM2Format(RegInfo.Items[3].c_str());
         RegInfo.UID = HelperStringFormat("%.16s%.4s", temp.c_str() + 48, RegInfo.Items[0].c_str());
 
         while (true) {
