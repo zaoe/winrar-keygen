@@ -14,7 +14,7 @@ void Help() {
     _putts(TEXT(""));
     _putts(TEXT("        winrar-keygen.exe \"Rebecca Morrison\" \"Single PC usage license\""));
     _putts(TEXT("  or:"));
-    _putts(TEXT("        winrar-keygen.exe \"Rebecca Morrison\" \"Single PC usage license\" >> rarreg.key\n"));
+    _putts(TEXT("        winrar-keygen.exe \"Rebecca Morrison\" \"Single PC usage license\" > rarreg.key\n"));
 }
 
 void PrintRegisterInfo(const WinRarKeygen<WinRarConfig>::RegisterInfo& Info) {

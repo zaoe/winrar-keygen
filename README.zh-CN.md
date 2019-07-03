@@ -56,7 +56,7 @@ Example:
 
         winrar-keygen.exe "Rebecca Morrison" "Single PC usage license"
   or:
-        winrar-keygen.exe "Rebecca Morrison" "Single PC usage license" >> rarreg.key
+        winrar-keygen.exe "Rebecca Morrison" "Single PC usage license" > rarreg.key
 ```
 
 ```console
