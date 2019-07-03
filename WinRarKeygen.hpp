@@ -72,7 +72,7 @@ private:
         return __ConfigType::G * PrivateKey;
     }
 
-    static std::string GeneratePublicKeySM2Format(const char* lpszMessage) {
+    static std::string GeneratePublicKeySM2CompressedFormat(const char* lpszMessage) {
         auto PrivateKey = GeneratePrivateKey(lpszMessage, strlen(lpszMessage));
         auto PublicKey = GeneratePublicKey(PrivateKey);
         auto PublicKeyCompressed = PublicKey.DumpCompressed();
@@ -184,9 +184,9 @@ public:
         RegInfo.UserName = lpszUserName;
         RegInfo.LicenseType = lpszLicenseType;
 
-        temp = GeneratePublicKeySM2Format(lpszUserName);
+        temp = GeneratePublicKeySM2CompressedFormat(lpszUserName);
         RegInfo.Items[3] = HelperStringFormat("60%.48s", temp.c_str());
-        RegInfo.Items[0] = GeneratePublicKeySM2Format(RegInfo.Items[3].c_str());
+        RegInfo.Items[0] = GeneratePublicKeySM2CompressedFormat(RegInfo.Items[3].c_str());
         RegInfo.UID = HelperStringFormat("%.16s%.4s", temp.c_str() + 48, RegInfo.Items[0].c_str());
 
         while (true) {
