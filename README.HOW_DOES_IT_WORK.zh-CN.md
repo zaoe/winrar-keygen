@@ -197,7 +197,7 @@ WinRAR在做完SHA1计算后，采用大数 ![h-inlined] 作为ECC签名时消�
 6. 重复执行完后会得到 ![](http://latex.codecogs.com/svg.latex?%5Cinline%20k_1%2Ck_2%2Ck_3%2C%5Cldots%2Ck_%7B15%7D)，则输出私钥
 
    <p align="center">
-       <img src="http://latex.codecogs.com/svg.latex?k%3D%5Csum_%7Bi%3D1%7D%5E%7B15%7Dk_i%20%5Ccdot%202%5E%7B8i%7D">
+       <img src="http://latex.codecogs.com/svg.latex?k%3D%5Csum_%7Bi%3D1%7D%5E%7B15%7Dk_i%20%5Ccdot%202%5E%7B16i%7D">
    </p>
 
 ## 6. WinRAR的公钥和私钥

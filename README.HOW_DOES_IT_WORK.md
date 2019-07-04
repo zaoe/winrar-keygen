@@ -196,7 +196,7 @@ to denote input data whose length is ![l-inlined]. WinRAR use it to generate pri
 6. After that, we will get ![](http://latex.codecogs.com/svg.latex?%5Cinline%20k_1%2Ck_2%2Ck_3%2C%5Cldots%2Ck_%7B15%7D). Then output private key
 
    <p align="center">
-       <img src="http://latex.codecogs.com/svg.latex?k%3D%5Csum_%7Bi%3D1%7D%5E%7B15%7Dk_i%20%5Ccdot%202%5E%7B8i%7D">
+       <img src="http://latex.codecogs.com/svg.latex?k%3D%5Csum_%7Bi%3D1%7D%5E%7B15%7Dk_i%20%5Ccdot%202%5E%7B16i%7D">
    </p>
 
 ## 6. The private key and public key of WinRAR
