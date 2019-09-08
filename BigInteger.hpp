@@ -70,7 +70,7 @@ public:
     BigInteger& operator=(BigInteger&& Other) noexcept {
         if (this != &Other) {
             mpz_swap(_Value, Other._Value);
-            mpz_clear(Other._Value);
+            mpz_set_ux(Other._Value, 0);
         }
         return *this;
     }
@@ -319,6 +319,10 @@ public:
         } else {
             throw std::invalid_argument("Invalid base value.");
         }
+    }
+
+    ~BigInteger() {
+        mpz_clear(_Value);
     }
 };
 
